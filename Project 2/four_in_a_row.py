@@ -1,5 +1,6 @@
 # use math library if needed
 import math
+import random
 from tkinter.constants import TRUE
 
 def get_child_boards(player, board):
@@ -135,10 +136,13 @@ def minimax(player, board, depth_limit):
         #print(board)
         #base case : checks if the game is over or depth limit is reached ->outputs winner
         if board.terminal() or depth_limit == 0 :
-            return [0,evaluate(player, board)]
+            #evaluating from MAX player POV at terminal nodes
+            return [evaluate(max_player, board),0]
+        
         #if player is max player -> return max value of that state
-        if(player == max_player):
+        if(max_player == player):
             return max_value(player, board, depth_limit)
+
         #if player is min player -> return min value of that state
         else:
             return min_value(player, board, depth_limit)
@@ -148,35 +152,34 @@ def minimax(player, board, depth_limit):
         print("max_value")
         #intialize max value to be -infinity
         v = -math.inf
+        max_v = -math.inf
         col_num = 0
-        #MAX_p = False
-        if(depth_limit == 0):
-            return evaluate(player, board)
         #gets the list of successor states at that depth
         for c,b in get_child_boards(player, board):
-            v = max(v, value(next_player, b, depth_limit-1)[1])
-            if(v == value(next_player, b, depth_limit-1)[1]):
+            v = value(next_player, b, depth_limit-1)[0]
+            if(max_v < v):
+                max_v = v
                 col_num = c
         
-
-        return v, col_num
+        print("max-score = " + str(max_v))
+        return max_v, col_num
     
     def min_value(player, board, depth_limit):
         print("min_value")
         v = math.inf
+        min_v = math.inf
         col_num = 0
-        if(depth_limit == 0):
-            return evaluate(player, board)
         
         for c,b in get_child_boards(player, board):
-            v = min(v, value(next_player, b, depth_limit-1)[1])
-            if(v == value(next_player, b, depth_limit-1)[1]):
+            v = value(next_player, b, depth_limit-1)[0]
+            if(min_v > v):
+                min_v = v
                 col_num = c
-    
-        return v,col_num
+        
+        print("min-score = " + str(min_v))
+        return min_v,col_num
 
     
-    print(placement)
     next_player = board.PLAYER2 if player == board.PLAYER1 else board.PLAYER1
     placement = value(player, board,depth_limit)[1]
     score = -math.inf
@@ -213,16 +216,63 @@ def alphabeta(player, board, depth_limit):
 
 ### Please finish the code below ##############################################
 ###############################################################################
-    def value(player, board, depth_limit):
-        pass
-
-    def max_value(player, board, depth_limit):
-        pass
+    def value(player, board, depth_limit, alpha, beta):
+        #if we reach terminal node for that depth or depth limit is reached -> return score
+        if board.terminal() or depth_limit == 0 :
+            #evaluating from MAX player POV at terminal nodes
+            return [evaluate(max_player, board),0]
+        #if player is max player -> return max value of that state
+        if(max_player == player):
+            return max_value(player, board, depth_limit, alpha, beta)
+        #else if player is min player -> return min value of that state
+        else:
+            return min_value(player, board, depth_limit, alpha, beta)
     
-    def min_value(player, board, depth_limit):
-        pass
 
+    def max_value(player, board, depth_limit, alpha, beta):
+        v = -math.inf
+        max_v = -math.inf
+        beta = +math.inf
+        col_num = 0
+        #iterating over the successors of the current game board
+        for c,b in get_child_boards(player, board):
+            v = value(next_player, b, depth_limit-1, alpha, beta)[0]
+            #finds column associated with max value
+            if(v >= max_v):
+                max_v = v
+                col_num = c
+            alpha = max(alpha, max_v)
+            #prune the tree if estimate(alpha) is greater than beta
+            if(alpha > beta):
+                break
+         
+        return max_v, col_num
+       
+
+    
+    def min_value(player, board, depth_limit, alpha, beta):
+        v = math.inf
+        min_v = math.inf
+        alpha = -math.inf
+        col_num = 0
+        #iterating over the successors of the current game board
+        for c,b in get_child_boards(player, board):
+            v = value(next_player, b, depth_limit-1, alpha, beta)[0]
+            #finds column associated with min value
+            if(v <= min_v):
+                min_v = v
+                col_num = c
+            beta = min(beta, min_v)
+            #prune the tree if estimate(beta) is less than alpha
+            if(alpha > beta):
+                break
+                
+        return min_v,col_num 
+    
     next_player = board.PLAYER2 if player == board.PLAYER1 else board.PLAYER1
+    alpha = -math.inf
+    beta = math.inf
+    placement = value(player, board,depth_limit, alpha, beta)[1]
     score = -math.inf
 ###############################################################################
     return placement
@@ -255,19 +305,54 @@ def expectimax(player, board, depth_limit):
     """
     max_player = player
     placement = None
+ 
 
 ### Please finish the code below ##############################################
 ###############################################################################
+
     def value(player, board, depth_limit):
-        pass
+        #if we reach terminal node for that depth or depth limit is reached -> return score
+        if board.terminal() or depth_limit == 0 :
+            #evaluating from MAX player POV at terminal nodes
+            return [evaluate(max_player, board),0]
+        #if player is max player -> return max value of that state
+        if(max_player == player):
+            return max_value(player, board, depth_limit)
+        #else if player is min player -> return min value of that state
+        else:
+            return exp_value(player, board, depth_limit)
 
     def max_value(player, board, depth_limit):
-        pass
+        v = -math.inf
+        max_value = -math.inf
+        col_num = 0
+        #iterating over the successors of the current game board
+        for c,b in get_child_boards(player, board):
+            v = value(next_player, b, depth_limit-1)[0]
+            #finds column associated with max value
+            if(max_value < v):
+                max_value = v
+                col_num = c
+
+        
+        return max_value, col_num   
     
-    def min_value(player, board, depth_limit):
-        pass
+    def exp_value(player, board, depth_limit):
+        v = 0
+        exp_val = 0
+        #iterating over the successors of the current game board
+        for c,b in get_child_boards(player, board):
+            #all children have equal probability of being picked -> probability = 1/n [n = number of children]
+            p = 1/len(get_child_boards(next_player, b))
+            #averaging step
+            v = v + p*value(next_player, b, depth_limit-1)[0]
+            if(exp_val < v):
+                exp_val = v
+        
+        return exp_val, None
 
     next_player = board.PLAYER2 if player == board.PLAYER1 else board.PLAYER1
+    placement = value(player, board,depth_limit)[1]
     score = -math.inf
 ###############################################################################
     return placement
